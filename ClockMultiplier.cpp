@@ -1,8 +1,3 @@
-//#define SERIAL_DEBUG
-#ifdef SERIAL_DEBUG
-#include "serial.h"
-#endif // SERIAL_DEBUG
-
 #include <stdint.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -11,6 +6,12 @@
 
 #ifndef UINT16_MAX
 #define UINT16_MAX 65535
+#endif
+#ifndef min
+#define min(a,b) ((a)<(b)?(a):(b))
+#endif
+#ifndef max
+#define max(a,b) ((a)>(b)?(a):(b))
 #endif
 
 typedef uint32_t ClockTick;
@@ -33,8 +34,7 @@ inline uint16_t getDuration(){
 inline uint16_t getMultiplication(){
   uint16_t value = getAnalogValue(MULCV_ADC_CHANNEL);
   value >>= 8; // range of 0 to 15
-  value <<= 1; // multiply by two
-  value += 2;
+  value += 1;
   return value;
 }
 
@@ -83,20 +83,6 @@ public:
   bool isOff(){
     return CLOCKMULTIPLIER_DUROUT_PORT & _BV(CLOCKMULTIPLIER_DUROUT_PIN);
   }
-#ifdef SERIAL_DEBUG
-  void dump(){
-    printString("period ");
-    printInteger(period);
-    printString(", fall ");
-    printInteger(fallMark);
-    printString(", pos ");
-    printInteger(pos);
-    if(isOff())
-      printString(" off");
-    else
-      printString(" on");
-  }
-#endif
 };
 
 class ClockMultiplier {
@@ -127,7 +113,6 @@ public:
     }else if(pos >= period){
       on();
       pos = 0;
-      fallMark = (((uint32_t)period*getDuration())>>12);
     }
     counter++;
   }
@@ -140,22 +125,6 @@ public:
   bool isOff(){
     return CLOCKMULTIPLIER_MULOUT_PORT & _BV(CLOCKMULTIPLIER_MULOUT_PIN);
   }
-#ifdef SERIAL_DEBUG
-  void dump(){
-    printString("mul ");
-    printInteger(muls);
-    printString(", period ");
-    printInteger(period);
-    printString(", fall ");
-    printInteger(fallMark);
-    printString(", pos ");
-    printInteger(pos);
-    if(isOff())
-      printString(" off");
-    else
-      printString(" on");
-  }
-#endif
 };
 
 class ClockRepeater {
@@ -197,7 +166,6 @@ public:
 	  stop();
 	}else{
 	  on();
-	  fallMark = (((uint32_t)period*getDuration())>>12);
 	}
 	pos = 0;
       }
@@ -214,26 +182,6 @@ public:
   bool isOff(){
     return CLOCKMULTIPLIER_REPOUT_PORT & _BV(CLOCKMULTIPLIER_REPOUT_PIN);
   }
-#ifdef SERIAL_DEBUG
-  void dump(){
-    printString("reps ");
-    printInteger(reps);
-    printString(", fall ");
-    printInteger(fallMark);
-    printString(", pos ");
-    printInteger(pos);
-    printString(", period ");
-    printInteger(*period);
-    if(running)
-      printString(" running");
-    else
-      printString(" stopped");
-    if(isOff())
-      printString(" off");
-    else
-      printString(" on");
-  }
-#endif
 };
 
 ClockDuration dur;
@@ -290,7 +238,7 @@ void setup(){
   // At 16MHz CPU clock and prescaler 64, Timer 0 should run at 1024Hz.
   // configure Timer 0 to Fast PWM, 0xff top.
   TCCR0A |= _BV(WGM01) | _BV(WGM00);
-//   TCCR0B |= _BV(CS01) | _BV(CS00); // prescaler: 64.
+  // TCCR0B |= _BV(CS01) | _BV(CS00); // prescaler: 64.
   // TCCR0B |= _BV(CS01);  // prescaler: 8
   TCCR0B |= _BV(CS00);  // prescaler: 1
   // enable timer 0 overflow interrupt
@@ -300,11 +248,6 @@ void setup(){
   reset();
 
   sei();
-
-#ifdef SERIAL_DEBUG
-  beginSerial(9600);
-  printString("hello\r\n");
-#endif
 }
 
 /* Timer 0 overflow interrupt */
@@ -339,40 +282,4 @@ void loop(){
       rep.fall();
     repstate = isrep;
   }
-
-#ifdef SERIAL_DEBUG
-  if(serialAvailable() > 0){
-    switch(serialRead()){
-    case ',':
-      CLOCKMULTIPLIER_DURIN_PORT ^= _BV(CLOCKMULTIPLIER_DURIN_PIN);
-      INT0_vect();
-      break;
-    case '.':
-      CLOCKMULTIPLIER_MULIN_PORT ^= _BV(CLOCKMULTIPLIER_MULIN_PIN);
-      INT1_vect();
-      break;
-    case '/':
-      CLOCKMULTIPLIER_REPIN_PORT ^= _BV(CLOCKMULTIPLIER_REPIN_PIN);
-      break;
-    case '<':
-      adc_values[0] -= 100;
-      adc_values[1] -= 100;
-      adc_values[2] -= 100;
-      break;
-    case '>':
-      adc_values[0] += 100;
-      adc_values[1] += 100;
-      adc_values[2] += 100;
-      break;
-    }
-    printString("\r\ndur[");
-    dur.dump();
-    printString("]\r\nmul[");
-    mul.dump();
-    printString("]\r\nrep[");
-    rep.dump();
-    printString("]");
-    printNewline();
-  }
-#endif
 }

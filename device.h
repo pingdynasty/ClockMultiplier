@@ -1,7 +1,7 @@
-
 #define ADC_CHANNELS                    3
 #define ADC_OVERSAMPLING                4
-#define ADC_VALUE_RANGE                 (1024*ADC_OVERSAMPLING)
+/* #define ADC_VALUE_RANGE                 (1024*ADC_OVERSAMPLING) */
+#define ADC_VALUE_RANGE                 4095
 #define CLOCKMULTIPLIER_DEADBAND_THRESHOLD  (ADC_VALUE_RANGE/32/4)
 
 #define DURCV_ADC_CHANNEL              1

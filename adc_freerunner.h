@@ -10,6 +10,6 @@ void setup_adc();
 
 // todo: revert hack which inverts values
 /* #define getAnalogValue(i) adc_values[i] */
-#define getAnalogValue(i) (ADC_VALUE_RANGE-1-adc_values[i])
+#define getAnalogValue(i) (ADC_VALUE_RANGE-adc_values[i])
 
 #endif /* _ANALOGREADER_H_ */
