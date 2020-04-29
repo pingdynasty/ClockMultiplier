@@ -3,14 +3,12 @@ TARGET = ClockMultiplier
 # INSTALL_DIR = /Applications/Arduino.app/Contents/Resources/Java/
 INSTALL_DIR = /usr/share/arduino/
 # INSTALL_DIR = /cygdrive/c/WinAVR-20100110
-PORT = /dev/ttyUSB0
-# PORT = COM7
-# PORT = /dev/ttyS4
+PORT ?= usb
 PROGRAMMER = avrispv2
 F_CPU = 16000000
 # MCU = atmega328p
 # UPLOAD_RATE = 57600
-MCU = atmega168
+MCU = m328
 UPLOAD_RATE = 19200
 
 ARDUINO = $(INSTALL_DIR)/hardware/cores/arduino
@@ -99,6 +97,19 @@ sym: build/$(TARGET).sym
 # Program the device.  
 flash: build/$(TARGET).hex
 	$(AVRDUDE) -p $(MCU) -P $(PORT) -c $(PROGRAMMER) -e -U flash:w:build/$(TARGET).hex
+
+# # atmega328p
+EFUSE = FD
+HFUSE = DA
+LFUSE = FF
+
+# atmega168
+# EFUSE = F8
+# HFUSE = DD
+# LFUSE = FF
+
+fuses:
+	$(AVRDUDE) -p $(MCU) -P $(PORT) -c $(PROGRAMMER) -u -U efuse:w:0x$(EFUSE):m -U hfuse:w:0x$(HFUSE):m -U lfuse:w:0x$(LFUSE):m
 
 # Display size of file.
 HEXSIZE = $(SIZE) --target=$(FORMAT) build/$(TARGET).hex
